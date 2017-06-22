@@ -3,7 +3,7 @@
 
     "license": "BSL-1.0",
 
-    "authors": "Jernej Krempuš",
+    "authors": ["Jernej Krempuš"],
 
     "description": "Fast, in place power of two split format FFT library.",
 
