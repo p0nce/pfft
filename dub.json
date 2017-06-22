@@ -1,0 +1,23 @@
+{
+	"name": "pfft",
+
+	"license": "BSL-1.0",
+
+	"importPaths": ["."],
+	"sourceFiles":
+	[
+		"pfft/pfft.d",
+		"pfft/sse_float.d",
+		"pfft/sse_double.d",
+		"pfft/impl_float.d",
+		"pfft/impl_double.d",
+		"pfft/impl_real.d",
+		"pfft/scalar_float.d",
+		"pfft/scalar_double.d",
+		"pfft/scalar_real.d",
+		"pfft/ldc_compat.d",
+		"pfft/dmd32_compat.d",
+		"pfft/fft_impl.d",
+		"pfft/shuffle.d"
+	]
+}
