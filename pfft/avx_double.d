@@ -9,6 +9,14 @@ import core.simd;
 
 import pfft.fft_impl;
 
+import pfft.ldc_compat;
+import pfft.dmd32_compat;
+
+version(DigitalMars)
+{
+}
+else:
+
 version(LDC)
 {
     import pfft.avx_declarations;
@@ -36,6 +44,10 @@ else version(GNU)
     alias __builtin_ia32_unpckhpd256 unpckhpd;
     alias __builtin_ia32_loadupd256 loadupd;
     alias __builtin_ia32_storeupd256 storeupd;
+}
+else
+{
+    // TODO
 }
 
 struct Vector 

@@ -9,6 +9,12 @@ import core.simd;
 
 import pfft.fft_impl;
 
+import pfft.ldc_compat;
+import pfft.dmd32_compat;
+
+version(DigitalMars){}
+else:
+
 version(LDC)
 {
     import pfft.avx_declarations;
@@ -90,9 +96,9 @@ struct Vector
     static auto v(T* p){ return cast(float4*) p; }
     static auto v8(T* p){ return cast(float8*) p; }
     
-    pragma(attribute, always_inline) 
     static void _deinterleave2(vec a0, vec a1, ref vec r0, ref vec r1)
     {
+        pragma(inline, true);
         r0 = interleave128_lo(a0, a1);
         r1 = interleave128_hi(a0, a1);
     }
@@ -100,9 +106,9 @@ struct Vector
     // the three functions below do not do exactly what the names imply, but that's
     // ok (fft works correctly when using them)
  
-    pragma(attribute, always_inline) 
     static void complex_array_to_real_imag_vec(int n)(T* arr, ref vec rr, ref vec ri)
     {
+        pragma(inline, true);
         static if(n == 8)
         {
             deinterleave(v8(arr)[0], v8(arr)[1], rr, ri); 
@@ -124,26 +130,26 @@ struct Vector
             static assert(0);
     }
    
-    pragma(attribute, always_inline)
     static void interleave(vec a0, vec a1, ref vec r0, ref vec r1)
     {
+        pragma(inline, true);
         vec a0_tmp = unpcklps(a0, a1);
         a1 =         unpckhps(a0, a1);
         _deinterleave2(a0_tmp, a1, r0, r1);
     }
     
-    pragma(attribute, always_inline)
     static void deinterleave(vec a0, vec a1, ref vec r0, ref vec r1)
     {
+        pragma(inline, true);
         _deinterleave2(a0, a1, a0, a1); 
         r0 = shufps!(2,0,2,0)(a0, a1);
         r1 = shufps!(3,1,3,1)(a0, a1);
     }
 
-    pragma(attribute, always_inline)
     static void transpose(int elements_per_vector)(
         vec a0, vec a1, ref vec r0, ref vec r1)
     {
+        pragma(inline, true);
         static if(elements_per_vector == 8)
         {
             r0 = shufps!(2,0,2,0)(a0, a1);
@@ -165,9 +171,9 @@ struct Vector
             static assert(0);
     }
 
-    pragma(attribute, always_inline)
     private static void br16_two(ref vec a0, ref vec a1, ref vec a2, ref vec a3)
     {
+        pragma(inline, true);
         vec b0 = shufps!(1, 0, 1, 0)(a0, a2);
         vec b1 = shufps!(1, 0, 1, 0)(a1, a3);
         vec b2 = shufps!(3, 2, 3, 2)(a0, a2);
@@ -179,11 +185,11 @@ struct Vector
         a3 = shufps!(3, 1, 3, 1)(b2, b3);
     }
 
-    pragma(attribute, always_inline)
     private static void br64(
         ref vec a0, ref vec a1, ref vec a2, ref vec a3,
         ref vec a4, ref vec a5, ref vec a6, ref vec a7)
     {
+        pragma(inline, true);
         // reverse the outer four bits 
         br16_two(a0, a2, a4, a6);
         br16_two(a1, a3, a5, a7);
@@ -203,9 +209,9 @@ struct Vector
             alias RepeatType!(T, n - 1, T, R) RepeatType;
     }
         
-    pragma(attribute, always_inline)
     static void bit_reverse_swap(T* p0, T* p1, size_t m)
     {
+        pragma(inline, true);
         RepeatType!(vec, 8) a, b;    
 
         foreach(i, _; a)
@@ -225,9 +231,9 @@ struct Vector
             *v8(p0 + i * m) = b[i];
     }
 
-    pragma(attribute, always_inline)
     static void bit_reverse(T* p0, size_t m)
     {
+        pragma(inline, true);
         RepeatType!(vec, 8) a;    
 
         foreach(i, _; a)
@@ -239,27 +245,27 @@ struct Vector
             *v8(p0 + i * m) = a[i];
     }
 
-    pragma(attribute, always_inline)
     static vec scalar_to_vector(T a)
     {
+        pragma(inline, true);
         return a;
     }
 
-    pragma(attribute, always_inline)
     static vec unaligned_load(T* p)
     {
+        pragma(inline, true);
         return loadups(p);
     }
 
-    pragma(attribute, always_inline)
     static void unaligned_store(T* p, vec v)
     {
+        pragma(inline, true);
         storeups(p, v);
     }
 
-    pragma(attribute, always_inline)
     static vec reverse(vec v)
     {
+        pragma(inline, true);
         v = shufps!(0, 1, 2, 3)(v, v);
         return reverse128(v);
     }
