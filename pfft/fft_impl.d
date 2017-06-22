@@ -644,7 +644,7 @@ struct FFT(V, Options)
             fft_pass(re, im, pend, table, m2);
     }
     
-    static static void fft_passes_fractional()(
+    static void fft_passes_fractional()(
         vec * pr, vec * pi, vec * pend, 
         T * table, size_t tableI)
     {
