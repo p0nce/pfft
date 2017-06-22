@@ -65,7 +65,7 @@ void bit_reverse_simple(T)(T* p, int log2n)
     {
         if(i1 > i0)
             _swap(p[i0],p[i1]);
-    };
+    }
 
     iter_bit_reversed_pairs!loopBody(log2n, p);
 }
@@ -157,7 +157,7 @@ struct BitReverse(alias V, Options)
         {
             if(i1 == i0)
                 (**p = i0 << log2l), (*p)++;
-        };
+        }
         iter_bit_reversed_pairs!loopBody0(log2n - 2 * log2l, &table);
 
         static void loopBody1(int i0, int i1, uint** p)
@@ -169,7 +169,7 @@ struct BitReverse(alias V, Options)
                 **p = i1 << log2l;
                 (*p)++;
             }
-        };
+        }
         iter_bit_reversed_pairs!loopBody1(log2n - 2 * log2l, &table);
     }
        

@@ -19,6 +19,7 @@ version(X86_64)
         version = linux_x86_64;
 
 import pfft.ldc_compat;
+import pfft.dmd32_compat;
 
 struct Vector
 {
@@ -88,36 +89,57 @@ struct Vector
             return shufflevector!(vec, 1, 0)(v, v);
         }
     }
-    else 
+    else version(DigitalMars)
     {
-        static vec scalar_to_vector(T a)
+        version(D_SIMD)
         {
-            version(linux_x86_64)
-                asm
-                {
-                    naked;
-                    movddup XMM0, XMM0;
-                    ret;
-                }
-            else
+            static vec scalar_to_vector(T a)
             {
-                static struct pair
+                version(linux_x86_64)
+                    asm
+                    {
+                        naked;
+                        movddup XMM0, XMM0;
+                        ret;
+                    }
+                else
                 {
-                    align(16) T a;
-                    T b;
-                };
-		auto p = pair(a,a);
-                return *cast(vec*)& p;
+                    static struct pair
+                    {
+                        align(16) T a;
+                        T b;
+                    }
+		            auto p = pair(a,a);
+                    return *cast(vec*)& p;
+                }
+            }
+        
+            static void interleave( 
+                vec a0,  vec a1, ref vec r0, ref vec r1)
+            {
+                r0 = __simd(XMM.UNPCKLPD, a0, a1);
+                r1 = __simd(XMM.UNPCKHPD, a0, a1);
             }
         }
-        
-        static void interleave( 
-            vec a0,  vec a1, ref vec r0, ref vec r1)
+        else
         {
-            r0 = __simd(XMM.UNPCKLPD, a0, a1);
-            r1 = __simd(XMM.UNPCKHPD, a0, a1);
+            static vec scalar_to_vector(T a)
+            {
+                return vec(a, a);
+            }
+
+            static void interleave(vec a0,  vec a1, ref vec r0, ref vec r1)
+            {
+                r0.x = a0.x;
+                r0.y = a1.x;
+                r1.x = a0.y;
+                r1.y = a1.y;
+            }
+
         }
     }
+    else
+        static assert(false, "Unsupported compiler");
         
     private static vec * v(T * a)
     {

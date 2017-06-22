@@ -16,7 +16,9 @@ version(LDC)
         public import ldc.simd: extractelement, 
                                 insertelement,
                                 shufflevector,
-                                inlineIR;
+                                inlineIR,
+                                double2,
+                                float4;
 
         private template BaseType(V)
         {

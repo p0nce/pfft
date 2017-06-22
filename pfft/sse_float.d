@@ -8,7 +8,6 @@ module pfft.sse_float;
 import core.simd;
 
 import pfft.fft_impl;
-import pfft.ldc_compat;
 
 template shuf_mask(int a3, int a2, int a1, int a0)
 { 
@@ -21,6 +20,7 @@ version(X86_64)
 
 
 import pfft.ldc_compat;
+import pfft.dmd32_compat;
         
 struct Vector 
 {
@@ -82,7 +82,7 @@ struct Vector
                     float b;
                     float c;
                     float d;
-                };
+                }
                 auto q = quad(a,a,a,a);
                 return *cast(vec*)& q;
             }

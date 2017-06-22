@@ -240,7 +240,7 @@ struct FFT(V, Options)
     {
         for(size_t i=0; i<n; i += vec_size)
         {
-          T buffer[vec_size*2] = void;
+          T[vec_size*2] buffer = void;
           for(size_t j = 0; j < vec_size; j++)
           {
             buffer[j] = pairs[i+j][0];
@@ -502,6 +502,8 @@ struct FFT(V, Options)
         // SSE on 64 bit Linux and runnitg test_float  pfft "14".), so lets's 
         // use fft_pass instead.
     
+        // Disabled work-around
+        /+
         version(DigitalMars)
             static if(tab.length == 2)
             {
@@ -509,6 +511,7 @@ struct FFT(V, Options)
                fft_pass(pr, pi, pend, tab[1], m2 / 2);
                return;
             }
+        +/
 
         size_t m = m2 + m2;
         size_t m4 = m2 / 2;
