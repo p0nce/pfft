@@ -7,10 +7,8 @@ module pfft.dmd32_compat;
 
 
 // Provide compatibility with x86 DMD, which doesn't define SIMD types.
-version(D_SIMD)
-{
-}
-else
+version(DigitalMars):
+version(X86)
 {
     struct double2
     {
