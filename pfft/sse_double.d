@@ -18,14 +18,7 @@ version(X86_64)
     version(linux)
         version = linux_x86_64;
 
-version(LDC)
-{
-    pragma(shufflevector) 
-        double2 shufflevector(double2, double2, int, int);
-
-    pragma(intrinsic, "llvm.x86.sse2.storeu.pd")
-        void __builtin_ia32_storeupd(double* p, double2 v);
-}
+import pfft.ldc_compat;
 
 struct Vector
 {
@@ -76,28 +69,23 @@ struct Vector
         static void interleave( 
             vec a0,  vec a1, ref vec r0, ref vec r1)
         {
-            r0 = shufflevector(a0, a1, 0, 2);
-            r1 = shufflevector(a0, a1, 1, 3);
+            r0 = shufflevector!(double2, 0, 2)(a0, a1);
+            r1 = shufflevector!(double2, 1, 3)(1, 3);
         }
         
         static vec unaligned_load(T* p)
         {
-            // there is no LLVM intrinsic for unaligned load but LLVM is
-            // smart enough to compile this to movups.
-            vec a;
-            (cast(T*) &a)[0] = p[0]; 
-            (cast(T*) &a)[1] = p[1]; 
-            return a;
+            return loadUnaligned!vec(cast(double*)p);
         }
 
         static void unaligned_store(T* p, vec v)
         {
-            return __builtin_ia32_storeupd(p, v);
+            storeUnaligned!vec(v, cast(double*)p);
         }
         
         static vec reverse(vec v)
         {
-            return shufflevector(v, v, 1, 0);
+            return shufflevector!(vec, 1, 0)(v, v);
         }
     }
     else 
