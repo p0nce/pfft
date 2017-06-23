@@ -2,6 +2,8 @@ module pfft.impl_float;
 
 mixin template Instantiate()
 {
+    nothrow:
+    @nogc:
     alias float T;
 
     struct TableValue{};

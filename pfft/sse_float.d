@@ -24,6 +24,8 @@ import pfft.dmd32_compat;
         
 struct Vector 
 {
+nothrow:
+@nogc:
     alias float4 vec;
     alias float T;
     

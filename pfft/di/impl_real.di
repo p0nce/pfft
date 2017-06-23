@@ -2,6 +2,8 @@ module pfft.impl_real;
 
 mixin template Instantiate()
 {
+nothrow:
+@nogc:
     alias real T;
 
     struct TableValue{};

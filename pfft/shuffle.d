@@ -7,6 +7,9 @@ module pfft.shuffle;
 
 import core.bitop;
 
+nothrow:
+@nogc:
+
 template st(alias a){ enum st = cast(size_t) a; }
 
 void _swap(T)(ref T a, ref T b)

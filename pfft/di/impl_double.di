@@ -2,6 +2,8 @@ module pfft.impl_double;
 
 mixin template Instantiate()
 {
+nothrow:
+@nogc:
     alias double T;
 
     struct TableValue{};

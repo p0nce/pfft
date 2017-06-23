@@ -23,6 +23,8 @@ import pfft.dmd32_compat;
 
 struct Vector
 {
+nothrow:
+@nogc:
     alias double2 vec;
     alias double T;
     

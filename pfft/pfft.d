@@ -4,7 +4,10 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 module pfft.pfft;
-import core.memory, core.bitop, std.array;
+import core.stdc.stdlib, 
+       core.exception,
+       core.bitop, 
+       std.array;
 
 template Import(TT)
 {
@@ -40,7 +43,8 @@ void main(string[] args)
     
     alias Fft!float F;
 
-    auto f = new F(n);
+    F f;
+    f.initialize(n);
 
     auto re = F.allocate(n);
     auto im = F.allocate(n);
@@ -55,8 +59,11 @@ void main(string[] args)
 }
 --- 
  */
-final class Fft(T)
+struct Fft(T)
 {
+public:
+nothrow:
+@nogc:
     mixin Import!T;
 
     int log2n;
@@ -68,12 +75,17 @@ $(D ifft) will operate on. I will refer to this number as n in the rest of the
 documentation for this class.Tables used in fft and ifft are calculated in the 
 constructor.
  */
-    this(size_t n)
+    void initialize(size_t n)
     {
         assert((n & (n - 1)) == 0);
         log2n  = bsf(n);
-        auto mem = GC.malloc( impl.table_size_bytes(log2n));
+        auto mem = malloc( impl.table_size_bytes(log2n));
         table = impl.fft_table(log2n, mem);
+    }
+
+    ~this()
+    {
+        free(table);
     }
 
 /**
@@ -103,15 +115,34 @@ the same role as they do in $(D fft).
     }
 
 /**
+    Returns requited alignment for use with $(D fft), $(D ifft) and
+    $(D scale) methods.
+ */
+    static size_t alignment(size_t n)
+    {
+        return impl.alignment(n);
+    }
+
+/**
 Allocates an array that is aligned properly for use with $(D fft), $(D ifft) and
 $(D scale) methods.
  */
     static T[] allocate(size_t n)
     {
-        auto r = cast(T*) GC.malloc(n * T.sizeof);
+        T* r = cast(T*) alignedMalloc(n, alignment(n));
         assert(((impl.alignment(n) - 1) & cast(size_t) r) == 0);
-        return r[0 .. n];
+        return r[0..n];
     }
+
+/**
+Deallocates an array allocated with `allocate`.
+*/
+    static void deallocate(T[] arr)
+    {
+        size_t n = arr.length;
+        alignedFree(arr.ptr, alignment(n));
+    }
+
 
 /**
 Scales an array data by factor k. The array must be properly aligned. To obtain
@@ -145,7 +176,8 @@ void main(string[] args)
     
     alias Rfft!float F;
 
-    auto f = new F(n);
+    F f;
+    f.initialize(n);
 
     auto data = F.allocate(n);
 
@@ -159,8 +191,11 @@ void main(string[] args)
 }
 ---
  */
-final class Rfft(T)
+struct Rfft(T)
 {
+public:
+nothrow:
+@nogc:
     mixin Import!T;
 
     int log2n;
@@ -173,18 +208,24 @@ The Rfft constructor. The parameter is the size of data sets that $(D rfft) will
 operate on. I will refer to this number as n in the rest of the documentation
 for this class. All tables used in rfft are calculated in the constructor.
  */
-    this(size_t n)
+    void initialize(size_t n)
     {
         assert((n & (n - 1)) == 0);
         log2n  = bsf(n);
     
-        _complex = new Fft!T(n / 2);
+        _complex.initialize(n / 2);
 
-        auto mem = GC.malloc( impl.rtable_size_bytes(log2n));
+        auto mem = malloc( impl.rtable_size_bytes(log2n));
         rtable = impl.rfft_table(log2n, mem);
 
-        mem = GC.malloc( impl.itable_size_bytes(log2n));
+        mem = malloc( impl.itable_size_bytes(log2n));
         itable = impl.interleave_table(log2n, mem);
+    }
+
+    ~this()
+    {
+        free(rtable);
+        free(itable);
     }
 
 /**
@@ -240,8 +281,96 @@ aligned. To obtain a properly aligned array you can use $(D allocate).
 /// An alias for Fft!T.allocate
     alias Fft!(T).allocate allocate;
 
+/// An alias for Fft!T.deallocate
+    alias Fft!(T).deallocate deallocate;
+
 /// An alias for Fft!T.scale
     alias Fft!(T).scale scale;
+
+    /// An alias for Fft!T.alignment
+    alias Fft!(T).alignment alignment;
      
     @property complex(){ return _complex; }
+}
+
+
+private:
+
+/// Allocates an aligned memory chunk.
+/// Functionally equivalent to Visual C++ _aligned_malloc.
+/// Do not mix allocations with different alignment.
+void* alignedMalloc(size_t size, size_t alignment) nothrow @nogc
+{
+    assert(alignment != 0);
+
+    // Short-cut and use the C allocator to avoid overhead if no alignment
+    if (alignment == 1)
+        return malloc(size);
+
+    if (size == 0)
+        return null;
+
+    size_t request = requestedSize(size, alignment);
+    void* raw = malloc(request);
+
+    if (request > 0 && raw == null) // malloc(0) can validly return anything
+        onOutOfMemoryError();
+
+    return storeRawPointerPlusSizeAndReturnAligned(raw, size, alignment);
+}
+
+/// Frees aligned memory allocated by alignedMalloc or alignedRealloc.
+/// Functionally equivalent to Visual C++ _aligned_free.
+/// Do not mix allocations with different alignment.
+void alignedFree(void* aligned, size_t alignment) nothrow @nogc
+{
+    assert(alignment != 0);
+
+    // Short-cut and use the C allocator to avoid overhead if no alignment
+    if (alignment == 1)
+        return free(aligned);
+
+    // support for free(NULL)
+    if (aligned is null)
+        return;
+
+    void** rawLocation = cast(void**)(cast(char*)aligned - size_t.sizeof);
+    free(*rawLocation);
+}
+
+/// Returns: next pointer aligned with alignment bytes.
+void* nextAlignedPointer(void* start, size_t alignment) pure nothrow @nogc
+{
+    return cast(void*)nextMultipleOf(cast(size_t)(start), alignment);
+}
+
+// Returns number of bytes to actually allocate when asking
+// for a particular alignement
+@nogc size_t requestedSize(size_t askedSize, size_t alignment) pure nothrow
+{
+    enum size_t pointerSize = size_t.sizeof;
+    return askedSize + alignment - 1 + pointerSize * 2;
+}
+
+// Store pointer given my malloc, and size in bytes initially requested (alignedRealloc needs it)
+@nogc void* storeRawPointerPlusSizeAndReturnAligned(void* raw, size_t size, size_t alignment) nothrow
+{
+    enum size_t pointerSize = size_t.sizeof;
+    char* start = cast(char*)raw + pointerSize * 2;
+    void* aligned = nextAlignedPointer(start, alignment);
+    void** rawLocation = cast(void**)(cast(char*)aligned - pointerSize);
+    *rawLocation = raw;
+    size_t* sizeLocation = cast(size_t*)(cast(char*)aligned - 2 * pointerSize);
+    *sizeLocation = size;
+    return aligned;
+}
+
+// Returns: x, multiple of powerOfTwo, so that x >= n.
+@nogc size_t nextMultipleOf(size_t n, size_t powerOfTwo) pure nothrow
+{
+    // check power-of-two
+    assert( (powerOfTwo != 0) && ((powerOfTwo & (powerOfTwo - 1)) == 0));
+
+    size_t mask = ~(powerOfTwo - 1);
+    return (n + powerOfTwo - 1) & mask;
 }
