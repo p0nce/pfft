@@ -79,13 +79,13 @@ constructor.
     {
         assert((n & (n - 1)) == 0);
         log2n  = bsf(n);
-        auto mem = malloc( impl.table_size_bytes(log2n));
+        auto mem = alignedMalloc( impl.table_size_bytes(log2n), 64);
         table = impl.fft_table(log2n, mem);
     }
 
     ~this()
     {
-        free(table);
+        alignedFree(table, 64);
     }
 
 /**
@@ -215,17 +215,17 @@ for this class. All tables used in rfft are calculated in the constructor.
     
         _complex.initialize(n / 2);
 
-        auto mem = malloc( impl.rtable_size_bytes(log2n));
+        auto mem = alignedMalloc( impl.rtable_size_bytes(log2n), 64);
         rtable = impl.rfft_table(log2n, mem);
 
-        mem = malloc( impl.itable_size_bytes(log2n));
+        mem = alignedMalloc( impl.itable_size_bytes(log2n), 64);
         itable = impl.interleave_table(log2n, mem);
     }
 
     ~this()
     {
-        free(rtable);
-        free(itable);
+        alignedFree(rtable, 64);
+        alignedFree(itable, 64);
     }
 
 /**
