@@ -7,8 +7,13 @@ module pfft.fft_impl;
 
 import pfft.shuffle;
 
+nothrow:
+@nogc:
+
 struct Scalar(_T)
 {
+nothrow:
+@nogc:
     alias _T vec;
     alias _T T;
     
@@ -200,6 +205,8 @@ void static_size_fft(int log2n, T)(T *pr, T *pi, T *table)
 
 struct FFT(V, Options)
 {    
+nothrow:
+@nogc:
     import core.bitop, core.stdc.stdlib;
    
     alias BitReverse!(V, Options) BR;
@@ -503,104 +510,113 @@ struct FFT(V, Options)
         // use fft_pass instead.
     
         // Disabled work-around
-        /+
+
         version(DigitalMars)
-            static if(tab.length == 2)
-            {
-               fft_pass(pr, pi, pend, tab[0], m2);
-               fft_pass(pr, pi, pend, tab[1], m2 / 2);
-               return;
-            }
-        +/
-
-        size_t m = m2 + m2;
-        size_t m4 = m2 / 2;
-        for(; pr < pend ; pr += m, pi += m)
         {
-            static if(tab.length == 2)
-            {
-                vec w1r = V.scalar_to_vector(tab[1][0]);
-                vec w1i = V.scalar_to_vector(tab[1][1]);
-
-                vec w2r = V.scalar_to_vector(tab[0][0]);
-                vec w2i = V.scalar_to_vector(tab[0][1]);
-
-                vec w3r = w1r * w2r - w1i * w2i;
-                vec w3i = w1r * w2i + w1i * w2r;
-
-                tab[0] += 2;
-                tab[1] += 4;
-            }
+            static if (tab.length == 2)
+                enum workaroundTabLength = true;
             else
+                enum workaroundTabLength = false;
+        }
+        else
+            enum workaroundTabLength = false;
+        
+        static if (workaroundTabLength)
+        {
+            fft_pass(pr, pi, pend, tab[0], m2);
+            fft_pass(pr, pi, pend, tab[1], m2 / 2);
+        }
+        else
+        {
+            size_t m = m2 + m2;
+            size_t m4 = m2 / 2;
+            for(; pr < pend ; pr += m, pi += m)
             {
-                vec w1r = V.scalar_to_vector(tab[0][0]);
-                vec w1i = V.scalar_to_vector(tab[0][1]);
+                static if(tab.length == 2)
+                {
+                    vec w1r = V.scalar_to_vector(tab[1][0]);
+                    vec w1i = V.scalar_to_vector(tab[1][1]);
 
-                vec w2r = V.scalar_to_vector(tab[0][2]);
-                vec w2i = V.scalar_to_vector(tab[0][3]);
+                    vec w2r = V.scalar_to_vector(tab[0][0]);
+                    vec w2i = V.scalar_to_vector(tab[0][1]);
 
-                vec w3r = V.scalar_to_vector(tab[0][4]);
-                vec w3i = V.scalar_to_vector(tab[0][5]);
+                    vec w3r = w1r * w2r - w1i * w2i;
+                    vec w3i = w1r * w2i + w1i * w2r;
+
+                    tab[0] += 2;
+                    tab[1] += 4;
+                }
+                else
+                {
+                    vec w1r = V.scalar_to_vector(tab[0][0]);
+                    vec w1i = V.scalar_to_vector(tab[0][1]);
+
+                    vec w2r = V.scalar_to_vector(tab[0][2]);
+                    vec w2i = V.scalar_to_vector(tab[0][3]);
+
+                    vec w3r = V.scalar_to_vector(tab[0][4]);
+                    vec w3i = V.scalar_to_vector(tab[0][5]);
             
-                tab[0] += 6;
-            }
+                    tab[0] += 6;
+                }
             
-            for (
-                size_t k0 = 0, k1 = m4, k2 = m2, k3 = m2 + m4; 
-                k0<m4; k0++, 
-                k1++, k2++, k3++) 
-            {                 
-                vec tr, ur, ti, ui;
+                for (
+                    size_t k0 = 0, k1 = m4, k2 = m2, k3 = m2 + m4; 
+                    k0<m4; k0++, 
+                    k1++, k2++, k3++) 
+                {                 
+                    vec tr, ur, ti, ui;
                 
-                vec r0 = pr[k0];
-                vec r1 = pr[k1];
-                vec r2 = pr[k2];
-                vec r3 = pr[k3];
+                    vec r0 = pr[k0];
+                    vec r1 = pr[k1];
+                    vec r2 = pr[k2];
+                    vec r3 = pr[k3];
                 
-                vec i0 = pi[k0];
-                vec i1 = pi[k1];
-                vec i2 = pi[k2];
-                vec i3 = pi[k3];
+                    vec i0 = pi[k0];
+                    vec i1 = pi[k1];
+                    vec i2 = pi[k2];
+                    vec i3 = pi[k3];
                 
-                tr = r2 * w2r - i2 * w2i;
-                ti = r2 * w2i + i2 * w2r;
-                r2 = r0 - tr;
-                i2 = i0 - ti;
-                r0 = r0 + tr;
-                i0 = i0 + ti;
+                    tr = r2 * w2r - i2 * w2i;
+                    ti = r2 * w2i + i2 * w2r;
+                    r2 = r0 - tr;
+                    i2 = i0 - ti;
+                    r0 = r0 + tr;
+                    i0 = i0 + ti;
                 
-                tr = r3 * w3r - i3 * w3i;
-                ti = r3 * w3i + i3 * w3r;
-                ur = r1 * w1r - i1 * w1i;
-                ui = r1 * w1i + i1 * w1r;
-                r3 = ur - tr;
-                i3 = ui - ti;
-                r1 = ur + tr;
-                i1 = ui + ti;
+                    tr = r3 * w3r - i3 * w3i;
+                    ti = r3 * w3i + i3 * w3r;
+                    ur = r1 * w1r - i1 * w1i;
+                    ui = r1 * w1i + i1 * w1r;
+                    r3 = ur - tr;
+                    i3 = ui - ti;
+                    r1 = ur + tr;
+                    i1 = ui + ti;
                 
-                tr = r1;
-                ti = i1;
-                r1 = r0 - tr;
-                i1 = i0 - ti;
-                r0 = r0 + tr;
-                i0 = i0 + ti;
+                    tr = r1;
+                    ti = i1;
+                    r1 = r0 - tr;
+                    i1 = i0 - ti;
+                    r0 = r0 + tr;
+                    i0 = i0 + ti;
                 
-                tr = i3;
-                ti = r3;                // take minus into account later
-                r3 = r2 - tr;
-                i3 = i2 + ti;
-                r2 = r2 + tr;
-                i2 = i2 - ti;
+                    tr = i3;
+                    ti = r3;                // take minus into account later
+                    r3 = r2 - tr;
+                    i3 = i2 + ti;
+                    r2 = r2 + tr;
+                    i2 = i2 - ti;
                 
-                pr[k0] = r0;
-                pr[k1] = r1;
-                pr[k2] = r2;
-                pr[k3] = r3;
+                    pr[k0] = r0;
+                    pr[k1] = r1;
+                    pr[k2] = r2;
+                    pr[k3] = r3;
                 
-                pi[k0] = i0;
-                pi[k1] = i1;
-                pi[k2] = i2;
-                pi[k3] = i3;
+                    pi[k0] = i0;
+                    pi[k1] = i1;
+                    pi[k2] = i2;
+                    pi[k3] = i3;
+                }
             }
         }
     }
@@ -1140,6 +1156,8 @@ struct FFT(V, Options)
 
 mixin template Instantiate()
 {
+nothrow:
+@nogc:
     struct TableValue{};
     alias TableValue* Table;
 
