@@ -31,7 +31,8 @@ void main(string[] args)
     
     alias Fft!float F;
 
-    auto f = new F(n);
+    F f;
+    f.initialize(n);
 
     auto re = F.allocate(n);
     auto im = F.allocate(n);
@@ -43,4 +44,7 @@ void main(string[] args)
 
     foreach(i, _; re)
         writefln("%s\t%s", re[i], im[i]);
+
+    F.deallocate(re);
+    F.deallocate(im);
 }

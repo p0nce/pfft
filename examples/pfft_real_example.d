@@ -30,7 +30,8 @@ void main(string[] args)
     
     alias Rfft!float F;
 
-    auto f = new F(n);
+    F f;
+    f.initialize(n);
 
     auto data = F.allocate(n);
 
@@ -41,4 +42,6 @@ void main(string[] args)
 
     foreach(i; 0 .. n / 2 + 1)
         writefln("%s\t%s", data[i], (i == 0 || i == n / 2) ? 0 : data[i]);
+
+    F.deallocate(data);
 }
