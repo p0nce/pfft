@@ -4,9 +4,9 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 module pfft.pfft;
-import core.stdc.stdlib, 
+import core.stdc.stdlib,
        core.exception,
-       core.bitop, 
+       core.bitop,
        std.array;
 
 template Import(TT)
@@ -17,7 +17,7 @@ template Import(TT)
         import impl = pfft.impl_double;
     else static if(is(TT == real))
         import impl = pfft.impl_real;
-    else    
+    else
         static assert(0, "Not implemented");
 }
 
@@ -25,10 +25,10 @@ template st(alias a){ enum st = cast(size_t) a; }
 
 /**
 A class for calculating discrete fourier transform. The methods of this class
-use split format for complex data. This means that a complex data set is 
+use split format for complex data. This means that a complex data set is
 represented as two arrays - one for the real part and one for the imaginary
-part. An instance of this class can only be used for transforms of one 
-particular size. The template parameter is the floating point type that the 
+part. An instance of this class can only be used for transforms of one
+particular size. The template parameter is the floating point type that the
 methods of the class will operate on.
 
 Example:
@@ -40,7 +40,7 @@ void main(string[] args)
 {
     auto n = to!int(args[1]);
     enforce((n & (n-1)) == 0, "N must be a power of two.");
-    
+
     alias Fft!float F;
 
     F f;
@@ -57,7 +57,7 @@ void main(string[] args)
     foreach(i, _; re)
         writefln("%s\t%s", re[i], im[i]);
 }
---- 
+---
  */
 struct Fft(T)
 {
@@ -68,11 +68,11 @@ nothrow:
 
     int log2n;
     impl.Table table;
-    
+
 /**
 The Fft constructor. The parameter is the size of data sets that $(D fft) and
-$(D ifft) will operate on. I will refer to this number as n in the rest of the 
-documentation for this class.Tables used in fft and ifft are calculated in the 
+$(D ifft) will operate on. I will refer to this number as n in the rest of the
+documentation for this class.Tables used in fft and ifft are calculated in the
 constructor.
  */
     void initialize(size_t n)
@@ -94,24 +94,24 @@ part of the data and $(D_PARAM im) the imaginary part of the data. The method
 operates in place - the result is saved back to $(D_PARAM re) and $(D_PARAM im).
 Both arrays must be properly aligned - to obtain a properly aligned array you can
 use $(D allocate).
- */  
+ */
     void fft(T[] re, T[] im)
     {
-        assert(re.length == im.length); 
+        assert(re.length == im.length);
         assert(re.length == (st!1 << log2n));
         assert(((impl.alignment(re.length) - 1) & cast(size_t) re.ptr) == 0);
         assert(((impl.alignment(im.length) - 1) & cast(size_t) im.ptr) == 0);
-        
+
         impl.fft(re.ptr, im.ptr, log2n, table);
     }
 
 /**
 Calculates inverse discrete fourier transform scaled by n. The arguments have
 the same role as they do in $(D fft).
- */  
+ */
     void ifft(T[] re, T[] im)
     {
-        fft(im, re); 
+        fft(im, re);
     }
 
 /**
@@ -157,11 +157,11 @@ a properly aligned array, use $(D allocate).
 }
 
 /**
-A class for calculating real discrete fourier transform. The methods of this 
-class use split format for complex data. This means that complex data set is 
+A class for calculating real discrete fourier transform. The methods of this
+class use split format for complex data. This means that complex data set is
 represented as two arrays - one for the real part and one for the imaginary
-part. An instance of this class can only be used for transforms of one 
-particular size. The template parameter is the floating point type that the 
+part. An instance of this class can only be used for transforms of one
+particular size. The template parameter is the floating point type that the
 methods of the class will operate on.
 
 Example:
@@ -173,7 +173,7 @@ void main(string[] args)
 {
     auto n = to!int(args[1]);
     enforce((n & (n-1)) == 0, "N must be a power of two.");
-    
+
     alias Rfft!float F;
 
     F f;
@@ -204,7 +204,7 @@ nothrow:
     impl.ITable itable;
 
 /**
-The Rfft constructor. The parameter is the size of data sets that $(D rfft) will 
+The Rfft constructor. The parameter is the size of data sets that $(D rfft) will
 operate on. I will refer to this number as n in the rest of the documentation
 for this class. All tables used in rfft are calculated in the constructor.
  */
@@ -212,7 +212,7 @@ for this class. All tables used in rfft are calculated in the constructor.
     {
         assert((n & (n - 1)) == 0);
         log2n  = bsf(n);
-    
+
         _complex.initialize(n / 2);
 
         auto mem = alignedMalloc( impl.rtable_size_bytes(log2n), 64);
@@ -229,51 +229,51 @@ for this class. All tables used in rfft are calculated in the constructor.
     }
 
 /**
-Calculates discrete fourier transform of the real valued sequence in data. 
+Calculates discrete fourier transform of the real valued sequence in data.
 The method operates in place. When the method completes, data contains the
-result. First $(I n / 2 + 1) elements contain the real part of the result and 
-the rest contains the imaginary part. Imaginary parts at position 0 and 
-$(I n / 2) are known to be equal to 0 and are not stored, so the content of 
-data looks like this: 
+result. First $(I n / 2 + 1) elements contain the real part of the result and
+the rest contains the imaginary part. Imaginary parts at position 0 and
+$(I n / 2) are known to be equal to 0 and are not stored, so the content of
+data looks like this:
 
- $(D r(0), r(1), ... r(n / 2), i(1), i(2), ... i(n / 2 - 1))  
-
-
-The elements of the result at position greater than n / 2 can be trivially 
-calculated from the relation $(I DFT(f)[i] = DFT(f)[n - i]*) that holds 
-because the input sequence is real. 
+ $(D r(0), r(1), ... r(n / 2), i(1), i(2), ... i(n / 2 - 1))
 
 
-The length of the array must be equal to n and the array must be properly 
+The elements of the result at position greater than n / 2 can be trivially
+calculated from the relation $(I DFT(f)[i] = DFT(f)[n - i]*) that holds
+because the input sequence is real.
+
+
+The length of the array must be equal to n and the array must be properly
 aligned. To obtain a properly aligned array you can use $(D allocate).
- */  
+ */
     void rfft(T[] data)
     {
         assert(data.length == (st!1 << log2n));
         assert(((impl.alignment(data.length) - 1) & cast(size_t) data.ptr) == 0);
-        
+
         impl.deinterleave(data.ptr, log2n, itable);
         impl.rfft(data.ptr, data[$ / 2 .. $].ptr, log2n, _complex.table, rtable);
     }
 
 /**
 Calculates the inverse of $(D rfft), scaled by n (You can use $(D scale)
-to normalize the result). Before the method is called, data should contain a 
-complex sequence in the same format as the result of $(D rfft). It is 
-assumed that the input sequence is a discrete fourier transform of a real 
-valued sequence, so the elements of the input sequence not stored in data 
+to normalize the result). Before the method is called, data should contain a
+complex sequence in the same format as the result of $(D rfft). It is
+assumed that the input sequence is a discrete fourier transform of a real
+valued sequence, so the elements of the input sequence not stored in data
 can be calculated from $(I DFT(f)[i] = DFT(f)[n - i]*). When the method
-completes, the array contains the real part of the inverse discrete fourier 
+completes, the array contains the real part of the inverse discrete fourier
 transform. The imaginary part is known to be equal to 0.
 
-The length of the array must be equal to n and the array must be properly 
+The length of the array must be equal to n and the array must be properly
 aligned. To obtain a properly aligned array you can use $(D allocate).
  */
     void irfft(T[] data)
     {
         assert(data.length == (st!1 << log2n));
         assert(((impl.alignment(data.length) - 1) & cast(size_t) data.ptr) == 0);
-     
+
         impl.irfft(data.ptr, data[$ / 2 .. $].ptr, log2n, _complex.table, rtable);
         impl.interleave(data.ptr, log2n, itable);
     }
@@ -289,7 +289,7 @@ aligned. To obtain a properly aligned array you can use $(D allocate).
 
     /// An alias for Fft!T.alignment
     alias Fft!(T).alignment alignment;
-     
+
     @property complex(){ return _complex; }
 }
 
