@@ -4,8 +4,9 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 module pfft.pfft;
-import core.stdc.stdlib,
-       core.exception,
+import core.stdc.stdlib;
+import core.stdc.string: memcpy;
+import core.exception,
        core.bitop,
        std.array;
 
@@ -79,8 +80,9 @@ constructor.
     {
         assert((n & (n - 1)) == 0);
         log2n  = bsf(n);
-        auto mem = alignedMalloc( impl.table_size_bytes(log2n), 64);
+        auto mem = alignedRealloc(table, impl.table_size_bytes(log2n), 64);
         table = impl.fft_table(log2n, mem);
+        assert(mem == table);
     }
 
     ~this()
@@ -215,11 +217,13 @@ for this class. All tables used in rfft are calculated in the constructor.
 
         _complex.initialize(n / 2);
 
-        auto mem = alignedMalloc( impl.rtable_size_bytes(log2n), 64);
+        auto mem = alignedRealloc(rtable, impl.rtable_size_bytes(log2n), 64);
         rtable = impl.rfft_table(log2n, mem);
+        assert(mem == rtable);
 
-        mem = alignedMalloc( impl.itable_size_bytes(log2n), 64);
+        mem = alignedRealloc(itable, impl.itable_size_bytes(log2n), 64);
         itable = impl.interleave_table(log2n, mem);
+        assert(mem == itable);
     }
 
     ~this()
@@ -295,6 +299,13 @@ aligned. To obtain a properly aligned array you can use $(D allocate).
 
 
 private:
+
+/// Returns: `true` if the pointer is suitably aligned.
+bool isPointerAligned(void* p, size_t alignment) pure nothrow @nogc
+{
+    assert(alignment != 0);
+    return ( cast(size_t)p & (alignment - 1) ) == 0;
+}
 
 /// Allocates an aligned memory chunk.
 /// Functionally equivalent to Visual C++ _aligned_malloc.
@@ -373,4 +384,55 @@ void* nextAlignedPointer(void* start, size_t alignment) pure nothrow @nogc
 
     size_t mask = ~(powerOfTwo - 1);
     return (n + powerOfTwo - 1) & mask;
+}
+
+/// Reallocates an aligned memory chunk allocated by alignedMalloc or alignedRealloc.
+/// Functionally equivalent to Visual C++ _aligned_realloc.
+/// Do not mix allocations with different alignment.
+@nogc void* alignedRealloc(void* aligned, size_t size, size_t alignment) nothrow
+{
+    assert(isPointerAligned(aligned, alignment));
+
+    // If you fail here, it can mean you've used an uninitialized AlignedBuffer.
+    assert(alignment != 0);
+
+    // Short-cut and use the C allocator to avoid overhead if no alignment
+    if (alignment == 1)
+        return realloc(aligned, size);
+
+    if (aligned is null)
+        return alignedMalloc(size, alignment);
+
+    if (size == 0)
+    {
+        alignedFree(aligned, alignment);
+        return null;
+    }
+
+    size_t previousSize = *cast(size_t*)(cast(char*)aligned - size_t.sizeof * 2);
+
+
+    void* raw = *cast(void**)(cast(char*)aligned - size_t.sizeof);
+    size_t request = requestedSize(size, alignment);
+
+    // Heuristic: if a requested size is within 50% to 100% of what is already allocated
+    //            then exit with the same pointer
+    if ( (previousSize < request * 4) && (request <= previousSize) )
+        return aligned;
+
+    void* newRaw = malloc(request);
+    static if( __VERSION__ > 2067 ) // onOutOfMemoryError wasn't nothrow before July 2014
+    {
+        if (request > 0 && newRaw == null) // realloc(0) can validly return anything
+            onOutOfMemoryError();
+    }
+
+    void* newAligned = storeRawPointerPlusSizeAndReturnAligned(newRaw, request, alignment);
+    size_t minSize = size < previousSize ? size : previousSize;
+    memcpy(newAligned, aligned, minSize);
+
+    // Free previous data
+    alignedFree(aligned, alignment);
+    isPointerAligned(newAligned, alignment);
+    return newAligned;
 }
