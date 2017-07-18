@@ -316,7 +316,15 @@ void* alignedMalloc(size_t size, size_t alignment) nothrow @nogc
 
     // Short-cut and use the C allocator to avoid overhead if no alignment
     if (alignment == 1)
-        return malloc(size);
+    {
+        // C99: 
+        // Implementation-defined behavior
+        // Whether the calloc, malloc, and realloc functions return a null pointer 
+        // or a pointer to an allocated object when the size requested is zero.
+        void* res = malloc(size);
+        if (size == 0)
+            return null;
+    }
 
     if (size == 0)
         return null;
@@ -398,7 +406,18 @@ void* nextAlignedPointer(void* start, size_t alignment) pure nothrow @nogc
 
     // Short-cut and use the C allocator to avoid overhead if no alignment
     if (alignment == 1)
-        return realloc(aligned, size);
+    {
+        void* res = realloc(aligned, size);
+
+        // C99: 
+        // Implementation-defined behavior
+        // Whether the calloc, malloc, and realloc functions return a null pointer 
+        // or a pointer to an allocated object when the size requested is zero.
+        if (size == 0)
+            return null;
+
+        return res;
+    }
 
     if (aligned is null)
         return alignedMalloc(size, alignment);
