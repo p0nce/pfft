@@ -70,7 +70,7 @@ nothrow:
         static vec scalar_to_vector()(float a)
         {
             version(linux_x86_64)
-                asm
+                asm nothrow @nogc
                 {
                     naked;
                     shufps XMM0, XMM0, 0;
@@ -224,7 +224,7 @@ nothrow:
         static void bit_reverse()(T * p0, size_t m)
         {
             version(linux_x86_64)
-                asm
+                asm nothrow @nogc
                 {
                     naked;
                     lea     RAX,[RDI+RDI*1];
@@ -261,7 +261,7 @@ nothrow:
         static void bit_reverse_swap()(T * p0, T * p1, size_t m)
         {
             version(linux_x86_64)
-                asm
+                asm nothrow @nogc
                 {
                     naked;
                     lea     RAX,[RDI+RDI*1];
