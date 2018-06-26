@@ -7,6 +7,8 @@ module pfft.impl_float;
 
 import pfft.fft_impl;
 
+//version = SSE_AVX; // only version supported by this fork
+
 version(SSE_AVX)
 {
     import sse = pfft.sse_float, avx = pfft.avx_float, pfft.detect_avx;  

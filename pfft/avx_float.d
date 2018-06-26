@@ -12,12 +12,15 @@ import pfft.fft_impl;
 import pfft.ldc_compat;
 import pfft.dmd32_compat;
 
-version(DigitalMars){}
-else:
+@target("avx2"): // else no AVX instruction is generated
+//version = SSE_AVX; // only backend supported in this fork
 
-version(LDC)
+version(DigitalMars)
 {
-    import pfft.avx_declarations;
+
+}
+else version(LDC)
+{
 }
 else version(GNU)
 {
@@ -28,43 +31,26 @@ else version(GNU)
         enum shuf_mask = a0 | (a1<<2) | (a2<<4) | (a3<<6); 
     }
 
-    pragma(attribute, always_inline)
     float8 insert128_0(float8 a, float4 b)
     {
         return __builtin_ia32_vinsertf128_ps256(a, b, 0);
     }
     
-    pragma(attribute, always_inline)
     float8 insert128_1(float8 a, float4 b)
     {
         return __builtin_ia32_vinsertf128_ps256(a, b, 1);
     }
 
-    pragma(attribute, always_inline)
-    float4 extract128_0(float8 a)
-    {
-        return __builtin_ia32_vextractf128_ps256(a, 0);
-    }
-
-    pragma(attribute, always_inline)
-    float4 extract128_1(float8 a)
-    {
-        return __builtin_ia32_vextractf128_ps256(a, 1);
-    }
-
-    pragma(attribute, always_inline)
     float8 interleave128_lo(float8 a, float8 b)
     {
-        return __builtin_ia32_vperm2f128_ps256(a, b, shuf_mask!(0,2,0,0));
+        return __builtin_ia32_vperm2f128_ps256(a, b, shuf_mask!(0,2,0,0)); // 32 0010 0000
     }
 
-    pragma(attribute, always_inline)
     float8 interleave128_hi(float8 a, float8 b)
     {
         return __builtin_ia32_vperm2f128_ps256(a, b, shuf_mask!(0,3,0,1));
     }
 
-    pragma(attribute, always_inline)
     float8  reverse128(float8 v)
     {
         return __builtin_ia32_vperm2f128_ps256(v, v, shuf_mask!(0, 0, 0, 1));
@@ -72,11 +58,9 @@ else version(GNU)
 
     alias __builtin_ia32_unpcklps256 unpcklps;
     alias __builtin_ia32_unpckhps256 unpckhps;
-    alias __builtin_ia32_vbroadcastf128_ps256 broadcast128;
     alias __builtin_ia32_loadups256 loadups;
     alias __builtin_ia32_storeups256 storeups;
     
-    pragma(attribute, always_inline)
     auto shufps(param...)(float8 a, float8 b)
     {
         return __builtin_ia32_shufps256(a, b, shuf_mask!param);
@@ -86,6 +70,8 @@ else version(GNU)
 
 struct Vector 
 {
+nothrow:
+@nogc:
     alias float8 vec;
     alias float T;
     
@@ -98,7 +84,6 @@ struct Vector
     
     static void _deinterleave2(vec a0, vec a1, ref vec r0, ref vec r1)
     {
-        pragma(inline, true);
         r0 = interleave128_lo(a0, a1);
         r1 = interleave128_hi(a0, a1);
     }
@@ -108,7 +93,6 @@ struct Vector
  
     static void complex_array_to_real_imag_vec(int n)(T* arr, ref vec rr, ref vec ri)
     {
-        pragma(inline, true);
         static if(n == 8)
         {
             deinterleave(v8(arr)[0], v8(arr)[1], rr, ri); 
@@ -132,7 +116,6 @@ struct Vector
    
     static void interleave(vec a0, vec a1, ref vec r0, ref vec r1)
     {
-        pragma(inline, true);
         vec a0_tmp = unpcklps(a0, a1);
         a1 =         unpckhps(a0, a1);
         _deinterleave2(a0_tmp, a1, r0, r1);
@@ -140,7 +123,6 @@ struct Vector
     
     static void deinterleave(vec a0, vec a1, ref vec r0, ref vec r1)
     {
-        pragma(inline, true);
         _deinterleave2(a0, a1, a0, a1); 
         r0 = shufps!(2,0,2,0)(a0, a1);
         r1 = shufps!(3,1,3,1)(a0, a1);
@@ -149,7 +131,6 @@ struct Vector
     static void transpose(int elements_per_vector)(
         vec a0, vec a1, ref vec r0, ref vec r1)
     {
-        pragma(inline, true);
         static if(elements_per_vector == 8)
         {
             r0 = shufps!(2,0,2,0)(a0, a1);
@@ -173,7 +154,6 @@ struct Vector
 
     private static void br16_two(ref vec a0, ref vec a1, ref vec a2, ref vec a3)
     {
-        pragma(inline, true);
         vec b0 = shufps!(1, 0, 1, 0)(a0, a2);
         vec b1 = shufps!(1, 0, 1, 0)(a1, a3);
         vec b2 = shufps!(3, 2, 3, 2)(a0, a2);
@@ -189,7 +169,6 @@ struct Vector
         ref vec a0, ref vec a1, ref vec a2, ref vec a3,
         ref vec a4, ref vec a5, ref vec a6, ref vec a7)
     {
-        pragma(inline, true);
         // reverse the outer four bits 
         br16_two(a0, a2, a4, a6);
         br16_two(a1, a3, a5, a7);
@@ -211,7 +190,6 @@ struct Vector
         
     static void bit_reverse_swap(T* p0, T* p1, size_t m)
     {
-        pragma(inline, true);
         RepeatType!(vec, 8) a, b;    
 
         foreach(i, _; a)
@@ -233,7 +211,6 @@ struct Vector
 
     static void bit_reverse(T* p0, size_t m)
     {
-        pragma(inline, true);
         RepeatType!(vec, 8) a;    
 
         foreach(i, _; a)
@@ -247,27 +224,85 @@ struct Vector
 
     static vec scalar_to_vector(T a)
     {
-        pragma(inline, true);
         return a;
     }
 
     static vec unaligned_load(T* p)
     {
-        pragma(inline, true);
         return loadups(p);
     }
 
     static void unaligned_store(T* p, vec v)
     {
-        pragma(inline, true);
         storeups(p, v);
     }
 
     static vec reverse(vec v)
     {
-        pragma(inline, true);
         v = shufps!(0, 1, 2, 3)(v, v);
         return reverse128(v);
+    }
+
+    version(LDC)
+    {
+        static shufps(int m3, int m2, int m1, int m0)(vec a, vec b)
+        {
+            return shufflevector!(float8, m0, m1, m2+8, m3+8, 
+                                          m0+4, m1+4, m2+12, m3+12)(a, b);
+        }
+
+        static vec unpcklps(vec a, vec b)
+        { 
+            return shufflevector!(float8, 0, 8, 1, 9, 
+                                          4, 12, 5, 13)(a, b);
+        }
+
+        static vec unpckhps(vec a, vec b)
+        { 
+            return shufflevector!(float8, 2, 10, 3, 11, 
+                                          6, 14, 7, 15)(a, b);
+        }
+
+        static vec interleave128_lo(vec a, vec b)
+        {
+            return shufflevector!(float8, 0, 1, 2, 3, 8, 9, 10, 11)(a, b);
+        }
+
+        static vec interleave128_hi(vec a, vec b)
+        {
+            return shufflevector!(float8, 4, 5, 6, 7, 12, 13, 14, 15)(a, b);
+        }
+
+        static vec reverse128(vec a)
+        {
+            return shufflevector!(float8, 4, 5, 6, 7, 0, 1, 2, 3)(a, a);
+        }
+
+        static vec loadups(T* p)
+        {
+            return loadUnaligned!vec(cast(float*)p);
+        }
+
+        static void storeups(T* p, vec v)
+        {
+            storeUnaligned!vec(v, cast(float*)p);
+        }
+
+        static float8 insert128_0(float8 a, float4 b)
+        {
+            float[8] res = a.array;
+            float[4] toInsert = b.array;
+            res[0..4] = toInsert[0..4];
+            return loadups(res.ptr);
+        }
+
+        static float8 insert128_1(float8 a, float4 b)
+        {
+            float[8] res = a.array;
+            float[4] toInsert = b.array;
+            res[4..8] = toInsert[0..4];
+            return loadups(res.ptr);
+        }
     }
 }
 

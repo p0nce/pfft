@@ -1,5 +1,8 @@
 module pfft.detect_avx;
 
+nothrow:
+@nogc:
+
 private __gshared int avx_state;
 
 private void set_avx_state()
@@ -11,7 +14,7 @@ private void set_avx_state()
 
     int r = void;
     version(GNU)
-        asm
+        asm nothrow @nogc
         {
             "mov $1, %%eax
             cpuid
@@ -30,7 +33,7 @@ private void set_avx_state()
             : "eax", "ebx", "ecx", "edx" ;
         }
     else
-        asm
+        asm nothrow @nogc
         {
             mov EAX, 1;
             cpuid;
@@ -46,9 +49,10 @@ private void set_avx_state()
             mov r, EAX;
         }
     
-    avx_state = r | 2;  
+    avx_state = r | 2;
 }
 
+// TODO: use atomics there to protect avx_state
 @property get()()
 {
     if(!avx_state)

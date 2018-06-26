@@ -6,6 +6,8 @@
 module pfft.impl_double;
 import pfft.fft_impl;
 
+//version = SSE_AVX; // only backend supported in this fork
+
 version(SSE_AVX)
 {
     import sse = pfft.sse_double, avx = pfft.avx_double, pfft.detect_avx;  

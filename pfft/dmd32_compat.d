@@ -80,7 +80,7 @@ else
 
             float8 opBinary(string op)(float8 o) if (op == "+")
             {
-                return float4(a+o.a,
+                return float8(a+o.a,
                               b+o.b,
                               c+o.c,
                               d+o.d,
@@ -92,7 +92,7 @@ else
 
             float8 opBinary(string op)(float8 o) if (op == "-")
             {
-                return float4(a-o.a,
+                return float8(a-o.a,
                               b-o.b,
                               c-o.c,
                               d-o.d,
@@ -104,7 +104,7 @@ else
 
             float8 opBinary(string op)(float8 o) if (op == "*")
             {
-                return float4(a*o.a,
+                return float8(a*o.a,
                               b*o.b,
                               c*o.c,
                               d*o.d,

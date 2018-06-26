@@ -12,14 +12,16 @@ import pfft.fft_impl;
 import pfft.ldc_compat;
 import pfft.dmd32_compat;
 
+// TODO: this was never testted
+
+@target("avx2"):
+//version = SSE_AVX; // only version supported by this fork
+
 version(DigitalMars)
 {
 }
-else:
-
-version(LDC)
+else version(LDC)
 {
-    import pfft.avx_declarations;
 }
 else version(GNU)
 {
@@ -47,11 +49,13 @@ else version(GNU)
 }
 else
 {
-    // TODO
+    static assert("Unsupported compiler");
 }
 
 struct Vector 
 {
+nothrow:
+@nogc:
     alias double4 vec;
     alias double T;
     
@@ -93,7 +97,6 @@ struct Vector
     static void interleave(vec a0, vec a1, ref vec r0, ref vec r1)
     {
         vec b0, b1;
-
         b0 = unpcklpd(a0, a1);
         b1 = unpckhpd(a0, a1);
         transpose!2(b0, b1, r0, r1);
@@ -188,13 +191,48 @@ struct Vector
     {
         storeupd(p, v);
     }
-
+/*
     static vec reverse(vec v)
     {
         v = __builtin_ia32_shufpd256(v, v, 0x5);
         v = __builtin_ia32_vperm2f128_pd256(v, v, shuf_mask!(0,0,0,1));
         return v;
     }
+*/
+
+    version(LDC)
+    {    
+        static vec unpcklpd(vec a, vec b)
+        { 
+            return shufflevector!(double4, 0, 4, 2, 6)(a, b);
+        }
+
+        static vec unpckhpd(vec a, vec b)
+        { 
+            return shufflevector!(double4, 1, 5, 3, 7)(a, b);
+        }
+
+        static vec interleave128_lo_d(vec a, vec b)
+        {
+            return shufflevector!(double4, 0, 1, 4, 5)(a, b);
+        }
+
+        static vec interleave128_hi_d(vec a, vec b)
+        {
+            return shufflevector!(double4, 2, 3, 6, 7)(a, b);
+        }
+
+        static vec loadupd(T* p)
+        {
+            return loadUnaligned!vec(cast(double*)p);
+        }
+
+        static void storeupd(T* p, vec v)
+        {
+            storeUnaligned!vec(v, cast(double*)p);
+        }
+    }
+
 }
 
 struct Options
