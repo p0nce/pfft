@@ -98,7 +98,7 @@ nothrow:
             static vec scalar_to_vector(T a)
             {
                 version(linux_x86_64)
-                    asm
+                    asm nothrow @nogc
                     {
                         naked;
                         movddup XMM0, XMM0;

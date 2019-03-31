@@ -64,7 +64,7 @@ struct Vector
         }
         else if(N==2)
         {
-            asm
+            asm nothrow @nogc
             {
                 "vldmia  %2, {%e0-%f0} \n"
                 "vmov %q1, %q0 \n"
@@ -89,7 +89,7 @@ struct Vector
         }
         else if(elements_per_vector == 2)
         {
-            asm
+            asm nothrow @nogc
             {
                 "vswp %f0, %e1 \n"
                 :"+w" a0.v, "+w" a1.v ;
@@ -123,7 +123,7 @@ struct Vector
     private static _bit_reverse(ref float4 a0, ref float4 a1, 
                                ref float4 a2, ref float4 a3)
     {
-        asm
+        asm nothrow @nogc
         {
             "vtrn.32 %q0, %q2 \n"
             "vtrn.32 %q1, %q3 \n"
