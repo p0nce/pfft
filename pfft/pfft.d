@@ -131,8 +131,9 @@ $(D scale) methods.
  */
     static T[] allocate(size_t n)
     {
-        T* r = cast(T*) alignedMalloc(n, alignment(n));
-        assert(((impl.alignment(n) - 1) & cast(size_t) r) == 0);
+        size_t bytes = n * T.sizeof;
+        T* r = cast(T*) alignedMalloc(bytes, alignment(bytes));
+        assert(((impl.alignment(bytes) - 1) & cast(size_t) r) == 0);
         return r[0..n];
     }
 
