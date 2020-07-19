@@ -14,10 +14,6 @@ template shuf_mask(int a3, int a2, int a1, int a0)
     enum shuf_mask = a0 | (a1<<2) | (a2<<4) | (a3<<6); 
 }
 
-version(X86_64)
-    version(linux)
-        version = linux_x86_64;
-
 import pfft.ldc_compat;
 import pfft.dmd32_compat;
 
@@ -97,23 +93,10 @@ nothrow:
         {
             static vec scalar_to_vector(T a)
             {
-                version(linux_x86_64)
-                    asm nothrow @nogc
-                    {
-                        naked;
-                        movddup XMM0, XMM0;
-                        ret;
-                    }
-                else
-                {
-                    static struct pair
-                    {
-                        align(16) T a;
-                        T b;
-                    }
-		            auto p = pair(a,a);
-                    return *cast(vec*)& p;
-                }
+               vec r;
+               r.ptr[0] = a;
+               r.ptr[1] = a;
+               return r;
             }
         
             static void interleave( 
