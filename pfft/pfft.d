@@ -456,3 +456,32 @@ void* nextAlignedPointer(void* start, size_t alignment) pure nothrow @nogc
     isPointerAligned(newAligned, alignment);
     return newAligned;
 }
+
+
+unittest
+{
+    {
+        int n = 16;
+        Fft!float A;
+        A.initialize(n);
+        float[] re = A.allocate(n);
+        float[] im = A.allocate(n);
+        scope(exit) A.deallocate(re);
+        scope(exit) A.deallocate(im);
+        re[] = 1.0f;
+        im[] = 0.0f;
+        A.fft(re, im);
+        A.ifft(re, im);
+    }
+
+    {
+        int n = 64;
+        Rfft!float B;
+        B.initialize(n);
+        float[] data = B.allocate(n);
+        scope(exit) B.deallocate(data);
+        data[] = 1.0f;
+        B.rfft(data);
+        B.irfft(data);
+    }
+}
