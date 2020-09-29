@@ -102,8 +102,8 @@ nothrow:
             static void interleave( 
                 vec a0,  vec a1, ref vec r0, ref vec r1)
             {
-                r0 = __simd(XMM.UNPCKLPD, a0, a1);
-                r1 = __simd(XMM.UNPCKHPD, a0, a1);
+                r0 = cast(double2) __simd(XMM.UNPCKLPD, a0, a1);
+                r1 = cast(double2) __simd(XMM.UNPCKHPD, a0, a1);
             }
         }
         else
