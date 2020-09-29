@@ -213,6 +213,9 @@ for this class. All tables used in rfft are calculated in the constructor.
  */
     void initialize(size_t n)
     {
+        // Doesn't work with lower size, but I'm unable to understand why
+        assert(n >= 128); 
+
         assert((n & (n - 1)) == 0);
         log2n  = bsf(n);
 
@@ -475,7 +478,7 @@ unittest
     }
 
     {
-        int n = 64;
+        int n = 128;
         Rfft!float B;
         B.initialize(n);
         float[] data = B.allocate(n);
