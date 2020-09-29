@@ -1,6 +1,6 @@
 **Note: this project has been updated to DUB and latest compilers. For now only SSE and some example were restored.**
 
-##pfft [![Build Status](https://travis-ci.org/p0nce/pfft.svg?branch=master)](https://travis-ci.org/p0nce/pfft)
+## pfft [![Build Status](https://travis-ci.org/p0nce/pfft.svg?branch=master)](https://travis-ci.org/p0nce/pfft)
 
 The pretty fast fourier transform (pfft) is a fast, in place power of two split format fft library. It is written in D, but can also be used from C and other languages that support calling C functions. 
 
